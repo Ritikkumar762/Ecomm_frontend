@@ -1,87 +1,196 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useProducts } from '@/modules/products/hooks/use-products';
+import Link from 'next/link';
+import { Plus, Search, ExternalLink, Trash2 } from 'lucide-react';
+import { useProducts, EnrichedProduct } from '@/modules/products/hooks/use-products';
 import { ProductTable } from '@/modules/products/components/product-table';
 import { ProductModal } from '@/modules/products/components/product-modal';
 import { VariantModal } from '@/modules/products/components/variant-modal';
-import { Product } from '@/modules/products/types/product.types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search, Filter } from 'lucide-react';
+import { ProductStatus, ProductStockStateFilter } from '@/modules/products/types/product.types';
+
+const TABS: { label: string; value: ProductStatus | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Active', value: 'active' },
+  { label: 'Draft', value: 'draft' },
+  { label: 'Archived', value: 'archived' },
+];
+
+const STOCK_FILTERS: { label: string; value: ProductStockStateFilter | 'all' }[] = [
+  { label: 'All stock levels', value: 'all' },
+  { label: 'In stock', value: 'in_stock' },
+  { label: 'Low stock', value: 'low_stock' },
+  { label: 'Out of stock', value: 'out_of_stock' },
+];
 
 export default function ProductsPage() {
   const {
     products,
+    counts,
+    total,
+    page,
+    setPage,
+    pageSize,
     loading,
+    error,
     searchQuery,
     setSearchQuery,
-    selectedCategory,
-    setSelectedCategory,
+    statusFilter,
+    setStatusFilter,
+    stockStateFilter,
+    setStockStateFilter,
+    selected,
+    toggleSelected,
+    toggleSelectAll,
+    bulkDeleteSelected,
     addProduct,
     removeProduct,
+    publishProduct,
+    archiveProduct,
     refresh,
   } = useProducts();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<EnrichedProduct | null>(null);
+
+  const pageStart = total === 0 ? 0 : page * pageSize + 1;
+  const pageEnd = Math.min(total, (page + 1) * pageSize);
+  const hasNextPage = pageEnd < total;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Products & Variants</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage your catalog, stock inventory, and multi-option variants.
-          </p>
+          <h1 className="text-2xl font-medium tracking-tight text-[#23272f]">Products</h1>
+          <p className="mt-1 text-xs text-[#7c818d]">{counts?.total ?? total} products</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 shadow-sm">
-          <Plus className="w-4 h-4" />
-          Add Product
-        </Button>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search products by title or category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 transition"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-900"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/inventory"
+            className="flex h-10 items-center gap-2 rounded-2xl border border-[#e9eaec] px-4 text-sm text-[#7c818d] hover:bg-slate-50"
           >
-            <option value="all">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="accessories">Accessories</option>
-            <option value="apparel">Apparel</option>
-          </select>
+            <ExternalLink className="h-4 w-4" />
+            Inventory
+          </Link>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex h-10 items-center gap-2 rounded-2xl bg-[#2563eb] px-4 text-sm text-white hover:bg-[#1d4fd1]"
+          >
+            <Plus className="h-4 w-4" />
+            Add product
+          </button>
         </div>
       </div>
 
-      {/* Data Table */}
-      {loading ? (
-        <div className="h-64 bg-slate-100 animate-pulse rounded-2xl" />
-      ) : (
-        <ProductTable
-          products={products}
-          onDelete={removeProduct}
-          onManageVariants={(product) => setSelectedProductForVariants(product)}
-        />
-      )}
+      {/* Lifecycle tabs, backed by the real per-store counts */}
+      <div className="flex flex-wrap items-center gap-2">
+        {TABS.map((tab) => {
+          const isActive = statusFilter === tab.value;
+          const count = counts
+            ? tab.value === 'all'
+              ? counts.total
+              : counts[tab.value]
+            : undefined;
+          return (
+            <button
+              key={tab.value}
+              onClick={() => setStatusFilter(tab.value)}
+              className={`flex h-10 items-center gap-2 rounded-2xl px-4 text-sm ${
+                isActive ? 'bg-[#2563eb] text-white' : 'border border-[#e9eaec] bg-white text-[#727783]'
+              }`}
+            >
+              {tab.label}
+              {count !== undefined && (
+                <span
+                  className={`flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-[#f6f9fe] text-[#adb0b8]'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Product Modal */}
+      <div className="rounded-3xl border border-[#e9eaec] bg-white">
+        <div className="flex flex-col gap-3 border-b border-[#e9eaec] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 rounded-2xl border border-[#e9eaec] px-4 py-3 sm:w-[292px]">
+              <Search className="h-5 w-5 shrink-0 text-[#7c818d]" />
+              <input
+                type="text"
+                placeholder="Search products by name"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm text-[#23272f] placeholder:text-[#7c818d] focus:outline-none"
+              />
+            </div>
+            <select
+              value={stockStateFilter}
+              onChange={(e) => setStockStateFilter(e.target.value as ProductStockStateFilter | 'all')}
+              className="h-11 rounded-2xl border border-[#e9eaec] bg-white px-4 text-sm text-[#23272f] focus:outline-none"
+            >
+              {STOCK_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selected.size > 0 && (
+            <button
+              onClick={bulkDeleteSelected}
+              className="flex h-10 items-center gap-2 rounded-2xl border border-rose-300 px-4 text-sm text-rose-600 hover:bg-rose-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete {selected.size} selected
+            </button>
+          )}
+        </div>
+
+        {error ? (
+          <div className="px-6 py-10 text-center text-sm text-rose-600">{error}</div>
+        ) : loading ? (
+          <div className="h-64 animate-pulse bg-slate-50" />
+        ) : (
+          <ProductTable
+            products={products}
+            selected={selected}
+            onToggleSelected={toggleSelected}
+            onToggleSelectAll={toggleSelectAll}
+            onManageVariants={setSelectedProductForVariants}
+            onPublish={publishProduct}
+            onArchive={archiveProduct}
+            onDelete={removeProduct}
+          />
+        )}
+
+        <div className="flex items-center justify-between px-6 py-4">
+          <p className="text-xs text-[#7c818d]">
+            {total === 0 ? 'No products' : `Showing ${pageStart}-${pageEnd} of ${total} products`}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p: number) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#7c818d] disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-medium text-white">{page + 1}</span>
+            <button
+              onClick={() => setPage((p: number) => p + 1)}
+              disabled={!hasNextPage}
+              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#23272f] disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
       <ProductModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -90,7 +199,6 @@ export default function ProductsPage() {
         }}
       />
 
-      {/* Variant Modal */}
       <VariantModal
         product={selectedProductForVariants}
         isOpen={!!selectedProductForVariants}

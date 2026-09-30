@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Package,
+  Warehouse,
   ShoppingCart,
   FolderTree,
   Users,
@@ -24,6 +25,7 @@ export interface SidebarProps {
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/products', icon: Package },
+  { name: 'Inventory', href: '/inventory', icon: Warehouse },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Categories', href: '/categories', icon: FolderTree },
   { name: 'Customers', href: '/customers', icon: Users },

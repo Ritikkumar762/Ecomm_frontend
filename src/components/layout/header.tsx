@@ -6,6 +6,13 @@ import { useAuth } from '@/hooks/use-auth';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20 shadow-xs">
@@ -32,16 +39,11 @@ export function Header() {
         {/* User Profile info */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-sm overflow-hidden">
-            {user?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              <UserIcon className="w-5 h-5 text-slate-300" />
-            )}
+            {initials || <UserIcon className="w-5 h-5 text-slate-300" />}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-sm font-semibold text-slate-900 leading-tight">{user?.name || 'Admin User'}</p>
-            <p className="text-xs text-slate-500 capitalize">{user?.role || 'Administrator'}</p>
+            <p className="text-sm font-semibold text-slate-900 leading-tight">{fullName || 'Admin User'}</p>
+            <p className="text-xs text-slate-500">{user?.email || ''}</p>
           </div>
           <button
             onClick={logout}

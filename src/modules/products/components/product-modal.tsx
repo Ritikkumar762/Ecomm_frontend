@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { CreateProductInput } from '../types/product.types';
+import { CreateProductInput, ProductStatus } from '../types/product.types';
+import { slugify } from '../services/product-service';
 
 export interface ProductModalProps {
   isOpen: boolean;
@@ -13,34 +14,31 @@ export interface ProductModalProps {
 }
 
 export function ProductModal({ isOpen, onClose, onSubmit }: ProductModalProps) {
-  const [title, setTitle] = useState('');
+  const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [compareAtPrice, setCompareAtPrice] = useState('');
-  const [category, setCategory] = useState('Electronics');
-  const [stock, setStock] = useState('10');
-  const [status, setStatus] = useState<'active' | 'draft'>('active');
+  const [status, setStatus] = useState<ProductStatus>('draft');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const slugPreview = slugify(name) || 'your-product-name';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsSubmitting(true);
     try {
       await onSubmit({
-        title,
-        description,
-        price: parseFloat(price),
-        compareAtPrice: compareAtPrice ? parseFloat(compareAtPrice) : undefined,
-        category,
-        stock: parseInt(stock, 10),
+        slug: slugify(name),
+        name,
+        ...(description ? { description } : {}),
         status,
-        images: ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'],
       });
-      // reset form
-      setTitle('');
+      setName('');
       setDescription('');
-      setPrice('');
+      setStatus('draft');
       onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create product.');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,16 +47,25 @@ export function ProductModal({ isOpen, onClose, onSubmit }: ProductModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Add New Product">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Product Title"
-          placeholder="e.g. Smart Watch Series 7"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
+        {error && (
+          <div className="rounded-xl border border-[#f7c9c9] bg-[#fceeee] px-4 py-3 text-xs font-medium text-[#df2e2e]">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <Input
+            label="Product Name"
+            placeholder="e.g. Self Priming Monoblock Pump"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <p className="mt-1 text-xs text-[#adb0b8]">URL slug: /{slugPreview}</p>
+        </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#727783]">
             Description
           </label>
           <textarea
@@ -66,64 +73,30 @@ export function ProductModal({ isOpen, onClose, onSubmit }: ProductModalProps) {
             placeholder="Detailed product features and specification..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 p-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none"
-            required
+            className="w-full rounded-lg border border-[#e9eaec] p-2.5 text-sm text-[#23272f] focus:ring-2 focus:ring-[#2563eb] focus:outline-none"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Price ($)"
-            type="number"
-            step="0.01"
-            placeholder="99.99"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-          />
-          <Input
-            label="Compare at Price ($)"
-            type="number"
-            step="0.01"
-            placeholder="129.99"
-            value={compareAtPrice}
-            onChange={(e) => setCompareAtPrice(e.target.value)}
-          />
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#727783]">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ProductStatus)}
+            className="w-full h-10 rounded-lg border border-[#e9eaec] px-3 text-sm text-[#23272f] focus:ring-2 focus:ring-[#2563eb] focus:outline-none bg-white"
+          >
+            <option value="draft">Draft (not visible to customers)</option>
+            <option value="active">Active (published)</option>
+          </select>
+          <p className="text-xs text-[#adb0b8]">
+            Prices and stock are set per variant after creating the product.
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-              Category
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full h-10 rounded-lg border border-slate-300 px-3 text-sm text-slate-900 focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white"
-            >
-              <option value="Electronics">Electronics</option>
-              <option value="Accessories">Accessories</option>
-              <option value="Apparel">Apparel</option>
-              <option value="Footwear">Footwear</option>
-              <option value="Home & Kitchen">Home & Kitchen</option>
-            </select>
-          </div>
-
-          <Input
-            label="Initial Stock"
-            type="number"
-            placeholder="50"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-4 border-t border-[#e9eaec]">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isSubmitting}>
+          <Button type="submit" isLoading={isSubmitting} disabled={!name.trim()}>
             Save Product
           </Button>
         </div>

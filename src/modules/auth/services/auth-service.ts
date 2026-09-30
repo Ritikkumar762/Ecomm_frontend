@@ -1,23 +1,23 @@
-import { LoginCredentials, AuthResponse } from '../types/auth.types';
+import { apiClient } from '@/lib/api-client';
+import { LoginCredentials, LoginResponse } from '../types/auth.types';
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Simulating API network call
-    await new Promise((resolve) => setTimeout(resolve, 800));
+  /** `POST /auth/login` — the only way this app authenticates. No mock fallback: an invalid
+   * credential or an unreachable backend must surface as a real error, never a demo login. */
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  },
 
-    if (credentials.email === 'admin@ecomm.com' || credentials.email.includes('@')) {
-      return {
-        user: {
-          id: 'usr_admin_01',
-          name: 'Ritik Admin',
-          email: credentials.email,
-          role: 'admin',
-          avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-        },
-        token: 'mock_jwt_token_sample_abc_123',
-      };
-    }
+  /** `POST /auth/logout` — revokes the current session server-side using the `sid` claim of
+   * the access token. Best-effort: if the token already expired, there is nothing to revoke. */
+  async logout(): Promise<void> {
+    await apiClient.post<void>('/auth/logout');
+  },
 
-    throw new Error('Invalid email or password credentials.');
+  /** `GET /users/me` — the signed-in account's current public profile. */
+  async getCurrentUser() {
+    const response = await apiClient.get<{ user: LoginResponse['user'] }>('/users/me');
+    return response.data.user;
   },
 };

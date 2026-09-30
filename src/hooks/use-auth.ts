@@ -1,45 +1,48 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { User } from '@/types/common.types';
+import { AuthUser } from '@/modules/auth/types/auth.types';
+import { authService } from '@/modules/auth/services/auth-service';
+
+const TOKEN_KEY = 'auth_token';
+const USER_KEY = 'auth_user';
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check localStorage or Auth session
-    const storedUser = localStorage.getItem('auth_user');
-    if (storedUser) {
+    // Restore the session from what `login()` persisted. No mock/demo fallback: the absence
+    // of a stored session means signed out, full stop — the login screen decides what
+    // happens next, not this hook.
+    const storedUser = localStorage.getItem(USER_KEY);
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem('auth_user');
+      } catch {
+        localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(TOKEN_KEY);
       }
-    } else {
-      // Default fallback mock user for admin demo
-      const mockAdmin: User = {
-        id: 'usr_admin_01',
-        name: 'Ritik Admin',
-        email: 'admin@ecomm.com',
-        role: 'admin',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-      };
-      setUser(mockAdmin);
-      localStorage.setItem('auth_user', JSON.stringify(mockAdmin));
     }
     setLoading(false);
   }, []);
 
-  const login = useCallback((userData: User, token: string) => {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('auth_user', JSON.stringify(userData));
+  const login = useCallback((userData: AuthUser, token: string, refreshToken?: string) => {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
+    if (refreshToken) localStorage.setItem('auth_refresh_token', refreshToken);
     setUser(userData);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    // Best-effort: revoke the session server-side, but the local sign-out must not hang on
+    // the network — an already-expired token would otherwise strand the user on the page.
+    void authService.logout().catch(() => {});
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('auth_refresh_token');
     setUser(null);
   }, []);
 

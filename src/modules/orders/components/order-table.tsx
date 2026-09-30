@@ -1,94 +1,90 @@
 'use client';
 
 import React from 'react';
-import { Order, OrderStatus } from '../types/order.types';
-import { Badge } from '@/components/ui/badge';
+import { ShoppingBag, Ban } from 'lucide-react';
+import { AdminOrderSummary } from '../types/order.types';
+import { StatusBadge } from './status-badge';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { ShoppingBag } from 'lucide-react';
 
 export interface OrderTableProps {
-  orders: Order[];
-  onStatusChange: (orderId: string, status: OrderStatus) => void;
+  orders: AdminOrderSummary[];
+  cancellingOrder: string | null;
+  onCancel: (orderNumber: string) => void;
 }
 
-export function OrderTable({ orders, onStatusChange }: OrderTableProps) {
+export function OrderTable({ orders, cancellingOrder, onCancel }: OrderTableProps) {
   if (orders.length === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
-        <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 className="text-lg font-bold text-slate-900">No orders placed yet</h3>
-        <p className="text-sm text-slate-500 mt-1">Orders from your store will appear here.</p>
+      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
+        <ShoppingBag className="h-10 w-10 text-[#adb0b8]" />
+        <p className="text-sm font-medium text-[#23272f]">No orders found</p>
+        <p className="text-xs text-[#7c818d]">Try a different search term or clear the status filter.</p>
       </div>
     );
   }
 
-  const getStatusVariant = (status: OrderStatus) => {
-    switch (status) {
-      case 'delivered':
-        return 'success';
-      case 'processing':
-      case 'shipped':
-        return 'info';
-      case 'pending':
-        return 'warning';
-      case 'cancelled':
-        return 'danger';
-      default:
-        return 'default';
-    }
-  };
-
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-              <th className="py-3.5 px-6">Order ID</th>
-              <th className="py-3.5 px-4">Customer</th>
-              <th className="py-3.5 px-4">Date</th>
-              <th className="py-3.5 px-4">Total</th>
-              <th className="py-3.5 px-4">Payment</th>
-              <th className="py-3.5 px-4">Fulfillment Status</th>
-              <th className="py-3.5 px-6 text-right">Update Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 text-sm">
-            {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
-                <td className="py-4 px-6 font-bold text-slate-900">{order.orderNumber}</td>
-                <td className="py-4 px-4">
-                  <p className="font-semibold text-slate-900 leading-tight">{order.customerName}</p>
-                  <p className="text-xs text-slate-500">{order.customerEmail}</p>
+    <div className="w-full overflow-x-auto">
+      <table className="w-full min-w-[960px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-[#e9eaec] bg-[#f6f9fe] text-[16px] font-medium text-[#23272f]">
+            <th className="px-6 py-3 font-medium">Order ID</th>
+            <th className="px-4 py-3 font-medium">Date</th>
+            <th className="px-4 py-3 font-medium">Customer</th>
+            <th className="px-4 py-3 font-medium">Total</th>
+            <th className="px-4 py-3 font-medium">Payment</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Shipment</th>
+            <th className="px-4 py-3 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#e9eaec] text-[14px]">
+          {orders.map((order) => {
+            const canCancel = order.status === 'placed';
+            const isCancelling = cancellingOrder === order.orderNumber;
+
+            return (
+              <tr key={order.orderNumber} className="hover:bg-[#f6f9fe]/60">
+                <td className="px-6 py-4 font-medium text-[#23272f]">{order.orderNumber}</td>
+                <td className="px-4 py-4 text-[#7c818d]">{formatDate(order.placedAt)}</td>
+                <td className="px-4 py-4">
+                  <p className="text-[#23272f]">
+                    {order.customer.firstName} {order.customer.lastName}
+                  </p>
+                  <p className="text-xs text-[#7c818d]">{order.customer.email}</p>
                 </td>
-                <td className="py-4 px-4 text-slate-600">{formatDate(order.createdAt)}</td>
-                <td className="py-4 px-4 font-bold text-slate-900">{formatCurrency(order.totalAmount)}</td>
-                <td className="py-4 px-4">
-                  <Badge variant={order.paymentStatus === 'paid' ? 'success' : 'warning'}>
-                    {order.paymentStatus}
-                  </Badge>
+                <td className="px-4 py-4 font-medium text-[#23272f]">
+                  {formatCurrency(Number(order.grandTotal), order.currency)}
                 </td>
-                <td className="py-4 px-4">
-                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                <td className="px-4 py-4">
+                  <StatusBadge status={order.payment?.status ?? null} />
                 </td>
-                <td className="py-4 px-6 text-right">
-                  <select
-                    value={order.status}
-                    onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
-                    className="text-xs font-medium rounded-lg border border-slate-300 bg-white py-1 px-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+                <td className="px-4 py-4">
+                  <StatusBadge status={order.displayStatus} />
+                </td>
+                <td className="px-4 py-4">
+                  <StatusBadge status={order.shipment?.status ?? null} />
+                </td>
+                <td className="px-4 py-4 text-right">
+                  {canCancel ? (
+                    <button
+                      onClick={() => onCancel(order.orderNumber)}
+                      disabled={isCancelling}
+                      title="Cancel order"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Ban className="h-3.5 w-3.5" />
+                      {isCancelling ? 'Cancelling…' : 'Cancel'}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-[#adb0b8]">—</span>
+                  )}
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
