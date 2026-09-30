@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Search, Upload, Plus, Calendar } from 'lucide-react';
 import { useOrders } from '@/modules/orders/hooks/use-orders';
 import { OrderTable } from '@/modules/orders/components/order-table';
+import { Pagination } from '@/components/ui/pagination';
 import { ORDER_DISPLAY_STATUSES, OrderDisplayStatus } from '@/modules/orders/types/order.types';
 
 function titleCase(value: string): string {
@@ -37,7 +38,6 @@ export default function OrdersPage() {
 
   const pageStart = total === 0 ? 0 : page * pageSize + 1;
   const pageEnd = Math.min(total, (page + 1) * pageSize);
-  const hasNextPage = pageEnd < total;
 
   const tabs: { label: string; value: OrderDisplayStatus | 'all' }[] = [
     { label: 'All', value: 'all' },
@@ -172,23 +172,7 @@ export default function OrdersPage() {
           <p className="text-xs text-[#7c818d]">
             {total === 0 ? 'No orders' : `Showing ${pageStart}-${pageEnd} of ${total} orders`}
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p: number) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#7c818d] disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-medium text-white">{page + 1}</span>
-            <button
-              onClick={() => setPage((p: number) => p + 1)}
-              disabled={!hasNextPage}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#23272f] disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </div>
       </div>
     </div>

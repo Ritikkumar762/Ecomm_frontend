@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { categoryService } from '../services/category-service';
 import { Category } from '../types/category.types';
+import { ApiError } from '@/lib/api-client';
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -15,8 +16,8 @@ export function useCategories() {
     try {
       const data = await categoryService.getCategories();
       setCategories(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load categories');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to load categories.');
     } finally {
       setLoading(false);
     }
@@ -26,9 +27,18 @@ export function useCategories() {
     fetchCategories();
   }, [fetchCategories]);
 
-  const addCategory = async (name: string, description?: string) => {
-    const newCat = await categoryService.createCategory(name, description);
-    setCategories((prev) => [...prev, newCat]);
+  const addCategory = async (name: string) => {
+    const created = await categoryService.createCategory({ name });
+    setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+    return created;
+  };
+
+  const toggleActive = async (category: Category) => {
+    const updated = await categoryService.updateCategory(category.id, {
+      isActive: !category.isActive,
+    });
+    setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    return updated;
   };
 
   return {
@@ -37,5 +47,6 @@ export function useCategories() {
     error,
     refresh: fetchCategories,
     addCategory,
+    toggleActive,
   };
 }

@@ -45,6 +45,7 @@ export const productService = {
       q: params.q,
       status: params.status,
       stockState: params.stockState,
+      categoryId: params.categoryId,
       limit: params.limit ?? 20,
       offset: params.offset ?? 0,
     });

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Plus, Search, ExternalLink, Trash2 } from 'lucide-react';
 import { useProducts, EnrichedProduct } from '@/modules/products/hooks/use-products';
 import { ProductTable } from '@/modules/products/components/product-table';
-import { ProductModal } from '@/modules/products/components/product-modal';
 import { VariantModal } from '@/modules/products/components/variant-modal';
+import { FilterSelect } from '@/components/ui/filter-select';
+import { Pagination } from '@/components/ui/pagination';
 import { ProductStatus, ProductStockStateFilter } from '@/modules/products/types/product.types';
 
 const TABS: { label: string; value: ProductStatus | 'all' }[] = [
@@ -39,23 +40,23 @@ export default function ProductsPage() {
     setStatusFilter,
     stockStateFilter,
     setStockStateFilter,
+    categoryFilter,
+    setCategoryFilter,
+    categories,
     selected,
     toggleSelected,
     toggleSelectAll,
     bulkDeleteSelected,
-    addProduct,
     removeProduct,
     publishProduct,
     archiveProduct,
     refresh,
   } = useProducts();
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<EnrichedProduct | null>(null);
 
   const pageStart = total === 0 ? 0 : page * pageSize + 1;
   const pageEnd = Math.min(total, (page + 1) * pageSize);
-  const hasNextPage = pageEnd < total;
 
   return (
     <div className="space-y-6">
@@ -72,13 +73,13 @@ export default function ProductsPage() {
             <ExternalLink className="h-4 w-4" />
             Inventory
           </Link>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
+          <Link
+            href="/products/new"
             className="flex h-10 items-center gap-2 rounded-2xl bg-[#2563eb] px-4 text-sm text-white hover:bg-[#1d4fd1]"
           >
             <Plus className="h-4 w-4" />
             Add product
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -112,6 +113,19 @@ export default function ProductsPage() {
             </button>
           );
         })}
+        <button
+          disabled
+          title="Top-selling ranking needs a sales-aggregation report this backend doesn't expose yet"
+          className="flex h-10 cursor-not-allowed items-center gap-2 rounded-2xl border border-[#e9eaec] bg-white px-4 text-sm text-[#adb0b8]"
+        >
+          Top selling
+        </button>
+        <Link
+          href="/inventory"
+          className="flex h-10 items-center gap-2 rounded-2xl border border-[#e9eaec] bg-white px-4 text-sm text-[#727783] hover:bg-slate-50"
+        >
+          Inventory
+        </Link>
       </div>
 
       <div className="rounded-3xl border border-[#e9eaec] bg-white">
@@ -127,17 +141,24 @@ export default function ProductsPage() {
                 className="w-full bg-transparent text-sm text-[#23272f] placeholder:text-[#7c818d] focus:outline-none"
               />
             </div>
-            <select
+            <FilterSelect
               value={stockStateFilter}
               onChange={(e) => setStockStateFilter(e.target.value as ProductStockStateFilter | 'all')}
-              className="h-11 rounded-2xl border border-[#e9eaec] bg-white px-4 text-sm text-[#23272f] focus:outline-none"
             >
               {STOCK_FILTERS.map((f) => (
                 <option key={f.value} value={f.value}>
                   {f.label}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
+            <FilterSelect value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </FilterSelect>
           </div>
           {selected.size > 0 && (
             <button
@@ -171,33 +192,9 @@ export default function ProductsPage() {
           <p className="text-xs text-[#7c818d]">
             {total === 0 ? 'No products' : `Showing ${pageStart}-${pageEnd} of ${total} products`}
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p: number) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#7c818d] disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-medium text-white">{page + 1}</span>
-            <button
-              onClick={() => setPage((p: number) => p + 1)}
-              disabled={!hasNextPage}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#23272f] disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </div>
       </div>
-
-      <ProductModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={async (input) => {
-          await addProduct(input);
-        }}
-      />
 
       <VariantModal
         product={selectedProductForVariants}

@@ -7,8 +7,7 @@
 export type ProductStatus = 'draft' | 'active' | 'archived';
 
 /** `in_stock`/`low_stock` deliberately overlap (a low SKU is still sellable); a product with
- * no live SKUs at all is `out_of_stock`. There is no `category` filter — the backend has no
- * category model to derive one from (see `AdminListProductsQuerySchema`'s comment). */
+ * no live SKUs at all is `out_of_stock`. */
 export type ProductStockStateFilter = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export interface SkuOption {
@@ -41,6 +40,8 @@ export interface Product {
   description: string;
   status: ProductStatus;
   skus: Sku[];
+  /** `null` when the merchant has not categorised this product. */
+  categoryId: string | null;
   currency: string;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +70,7 @@ export interface ProductListParams {
   q?: string;
   status?: ProductStatus;
   stockState?: ProductStockStateFilter;
+  categoryId?: string;
   limit?: number;
   offset?: number;
 }
@@ -88,12 +90,15 @@ export interface CreateProductInput {
   name: string;
   description?: string;
   status?: ProductStatus;
+  categoryId?: string | null;
 }
 
 /** `PATCH /admin/products/:slug` — at least one field required (enforced server-side too). */
 export interface UpdateProductInput {
   name?: string;
   description?: string;
+  /** `null` clears the category; `undefined` leaves it untouched. */
+  categoryId?: string | null;
 }
 
 export const PRODUCT_BULK_ACTIONS = ['publish', 'archive', 'delete'] as const;

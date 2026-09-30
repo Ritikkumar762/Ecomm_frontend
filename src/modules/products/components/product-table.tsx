@@ -147,6 +147,7 @@ export function ProductTable({
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Inventory</th>
             <th className="px-4 py-3 font-medium">Amount</th>
+            <th className="px-4 py-3 font-medium">Category</th>
             <th className="px-4 py-3 text-right font-medium">Actions</th>
           </tr>
         </thead>
@@ -199,6 +200,7 @@ export function ProductTable({
                 )}
               </td>
               <td className="px-4 py-4 text-sm text-[#727783]">{priceLabel(product)}</td>
+              <td className="px-4 py-4 text-sm text-[#727783]">{product.categoryName ?? '—'}</td>
               <td className="px-4 py-4 text-right">
                 <RowActions
                   product={product}

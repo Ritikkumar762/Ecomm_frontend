@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { productService } from '../services/product-service';
 import { inventoryService } from '@/modules/inventory/services/inventory-service';
+import { categoryService } from '@/modules/categories/services/category-service';
+import { Category } from '@/modules/categories/types/category.types';
 import {
   Product,
   ProductStatus,
@@ -22,6 +24,8 @@ export interface EnrichedProduct extends Product {
   /** The product's primary image, from `GET /admin/products/:slug/media`. `null` until the
    * per-row fetch resolves, or when the product genuinely has no gallery image. */
   primaryImageUrl: string | null;
+  /** Resolved from `categoryId` against the store's category list. `null` when uncategorised. */
+  categoryName: string | null;
 }
 
 export function useProducts() {
@@ -34,6 +38,8 @@ export function useProducts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductStatus | 'all'>('all');
   const [stockStateFilter, setStockStateFilter] = useState<ProductStockStateFilter | 'all'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | 'all'>('all');
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +54,7 @@ export function useProducts() {
         q: debouncedSearch || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         stockState: stockStateFilter === 'all' ? undefined : stockStateFilter,
+        categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       });
@@ -59,7 +66,7 @@ export function useProducts() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, statusFilter, stockStateFilter, page]);
+  }, [debouncedSearch, statusFilter, stockStateFilter, categoryFilter, page]);
 
   useEffect(() => {
     fetchProducts();
@@ -68,7 +75,16 @@ export function useProducts() {
   useEffect(() => {
     setPage(0);
     setSelected(new Set());
-  }, [debouncedSearch, statusFilter, stockStateFilter]);
+  }, [debouncedSearch, statusFilter, stockStateFilter, categoryFilter]);
+
+  // The category list rarely changes within a session; fetch it once for the filter dropdown
+  // and for resolving each row's `categoryId` to a name, rather than on every page/filter change.
+  useEffect(() => {
+    categoryService
+      .getCategories()
+      .then(setCategories)
+      .catch(() => {});
+  }, []);
 
   // Best-effort stock enrichment: the product list carries SKUs but not their on-hand
   // figures, so a separate, capped read of the inventory table fills in "N in stock".
@@ -102,11 +118,16 @@ export function useProducts() {
     };
   }, [products]);
 
+  const categoryNameById = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
+
   const enrichedProducts: EnrichedProduct[] = useMemo(
     () =>
       products.map((product) => {
         const primaryImageUrl = primaryImageBySlug.get(product.slug) ?? null;
-        if (product.skus.length === 0) return { ...product, totalAvailable: null, primaryImageUrl };
+        const categoryName = product.categoryId ? (categoryNameById.get(product.categoryId) ?? null) : null;
+        if (product.skus.length === 0) {
+          return { ...product, totalAvailable: null, primaryImageUrl, categoryName };
+        }
         let sum = 0;
         let known = 0;
         for (const sku of product.skus) {
@@ -116,9 +137,9 @@ export function useProducts() {
             known += 1;
           }
         }
-        return { ...product, totalAvailable: known > 0 ? sum : null, primaryImageUrl };
+        return { ...product, totalAvailable: known > 0 ? sum : null, primaryImageUrl, categoryName };
       }),
-    [products, stockBySkuId, primaryImageBySlug],
+    [products, stockBySkuId, primaryImageBySlug, categoryNameById],
   );
 
   const addProduct = async (input: CreateProductInput) => {
@@ -177,6 +198,9 @@ export function useProducts() {
     setStatusFilter,
     stockStateFilter,
     setStockStateFilter,
+    categoryFilter,
+    setCategoryFilter,
+    categories,
     selected,
     toggleSelected,
     toggleSelectAll,

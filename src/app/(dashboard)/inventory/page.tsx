@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useInventory } from '@/modules/inventory/hooks/use-inventory';
 import { InventoryTable } from '@/modules/inventory/components/inventory-table';
+import { FilterSelect } from '@/components/ui/filter-select';
+import { Pagination } from '@/components/ui/pagination';
 import { StockStateFilter } from '@/modules/inventory/types/inventory.types';
 
 const STOCK_FILTERS: { label: string; value: StockStateFilter | 'all' }[] = [
@@ -67,7 +69,6 @@ export default function InventoryPage() {
 
   const pageStart = total === 0 ? 0 : page * pageSize + 1;
   const pageEnd = Math.min(total, (page + 1) * pageSize);
-  const hasNextPage = pageEnd < total;
 
   return (
     <div className="space-y-6">
@@ -138,17 +139,13 @@ export default function InventoryPage() {
                 className="w-full bg-transparent text-sm text-[#23272f] placeholder:text-[#7c818d] focus:outline-none"
               />
             </div>
-            <select
-              value={stockState}
-              onChange={(e) => setStockState(e.target.value as StockStateFilter | 'all')}
-              className="h-11 rounded-2xl border border-[#e9eaec] bg-white px-4 text-sm text-[#23272f] focus:outline-none"
-            >
+            <FilterSelect value={stockState} onChange={(e) => setStockState(e.target.value as StockStateFilter | 'all')}>
               {STOCK_FILTERS.map((f) => (
                 <option key={f.value} value={f.value}>
                   {f.label}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
           </div>
         </div>
 
@@ -164,25 +161,7 @@ export default function InventoryPage() {
           <p className="text-xs text-[#7c818d]">
             {total === 0 ? 'No variants' : `Showing ${pageStart}-${pageEnd} of ${total} variants`}
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#7c818d] disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-medium text-white">
-              {page + 1}
-            </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!hasNextPage}
-              className="rounded-lg border border-[#e9eaec] px-3 py-2 text-sm font-medium text-[#23272f] disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
         </div>
       </div>
     </div>

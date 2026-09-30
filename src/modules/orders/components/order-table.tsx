@@ -32,9 +32,9 @@ export function OrderTable({ orders, cancellingOrder, onCancel }: OrderTableProp
             <th className="px-4 py-3 font-medium">Date</th>
             <th className="px-4 py-3 font-medium">Customer</th>
             <th className="px-4 py-3 font-medium">Total</th>
-            <th className="px-4 py-3 font-medium">Payment</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Shipment</th>
+            <th className="px-4 py-3 font-medium">Payment Status</th>
+            <th className="px-4 py-3 font-medium">Fulfillment Status</th>
+            <th className="px-4 py-3 font-medium">Delivery Status</th>
             <th className="px-4 py-3 text-right font-medium">Actions</th>
           </tr>
         </thead>

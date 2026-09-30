@@ -15,40 +15,40 @@ export function Header() {
     .join('');
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+    <header className="h-16 bg-white border-b border-[#e9eaec] px-6 flex items-center justify-between sticky top-0 z-20">
       {/* Search Input */}
-      <div className="relative max-w-md w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="flex items-center gap-2 rounded-2xl border border-[#e9eaec] px-4 py-2.5 max-w-md w-full">
+        <Search className="h-4 w-4 shrink-0 text-[#7c818d]" />
         <input
           type="text"
           placeholder="Search products, orders, customers..."
-          className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition"
+          className="w-full bg-transparent text-sm text-[#23272f] placeholder:text-[#7c818d] focus:outline-none"
         />
       </div>
 
       {/* Right controls */}
       <div className="flex items-center gap-4">
         {/* Notification Bell */}
-        <button className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition">
+        <button className="relative rounded-xl p-2 text-[#7c818d] transition hover:bg-[#f6f9fe] hover:text-[#23272f]">
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#df2e2e] rounded-full ring-2 ring-white" />
         </button>
 
-        <div className="h-6 w-px bg-slate-200" />
+        <div className="h-6 w-px bg-[#e9eaec]" />
 
         {/* User Profile info */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-sm overflow-hidden">
-            {initials || <UserIcon className="w-5 h-5 text-slate-300" />}
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#2563eb] text-sm font-medium text-white">
+            {initials || <UserIcon className="h-5 w-5 text-white/70" />}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-sm font-semibold text-slate-900 leading-tight">{fullName || 'Admin User'}</p>
-            <p className="text-xs text-slate-500">{user?.email || ''}</p>
+            <p className="text-sm font-medium leading-tight text-[#23272f]">{fullName || 'Admin User'}</p>
+            <p className="text-xs text-[#7c818d]">{user?.email || ''}</p>
           </div>
           <button
             onClick={logout}
             title="Logout"
-            className="p-2 ml-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
+            className="ml-1 rounded-xl p-2 text-[#adb0b8] transition hover:bg-[#fceeee] hover:text-[#df2e2e]"
           >
             <LogOut className="w-4 h-4" />
           </button>
